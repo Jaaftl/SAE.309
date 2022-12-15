@@ -3,7 +3,7 @@ import time
 import threading
 from PyQt5.QtWidgets import QApplication, QWidget, QTextEdit, QGridLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QFileDialog
 import sys
-import csv
+import csv, ipaddress
 
 
 class Client(QWidget):
@@ -25,7 +25,7 @@ class Client(QWidget):
         self.lirecsv = QPushButton("open file")
 
         self.etat = QLabel()
-        self.etat.setText('déconnecté')
+        self.etat.setText('disconnected')
         self.panneau = QTextEdit()
         self.panneau.setEnabled(False)
         self.__text = QLineEdit("")  # Entrée message du client
@@ -59,57 +59,57 @@ class Client(QWidget):
 
     def connexion(self):
         x = str(self.etat.text())
-        if x == "déconnecté":
+        if x == "disconnected":
             try:
                 self.__client_socket = socket.socket()
                 IP = str(self.__ip.text())
                 PORT = int(self.__port.text())
                 self.__client_socket.connect((IP, PORT))
             except ConnectionRefusedError:
-                print("serveur non lancé ou mauvaise information")
+                print("Server not launched or incorrect information")
                 erreur = QMessageBox()
-                erreur.setWindowTitle("Erreur")
-                erreur.setText("serveur non lancé ou mauvaise information")
+                erreur.setWindowTitle("Error")
+                erreur.setText("Server not launched or incorrect information")
                 erreur.resize(250, 500)
                 erreur.setIcon(QMessageBox.Critical)
 
                 erreur.exec_()
             except ConnectionError:
-                print("erreur de connection")
+                print("Connection Error")
                 erreur = QMessageBox()
-                erreur.setWindowTitle("Erreur")
-                erreur.setText("Erreur de connection")
+                erreur.setWindowTitle("Error")
+                erreur.setText("Connection Error")
                 erreur.resize(250, 500)
                 erreur.setIcon(QMessageBox.Critical)
                 erreur.exec_()
 
             except OSError:
-                print("Erreu d'IP ou port")
+                print("OS Error")
                 erreur = QMessageBox()
-                erreur.setWindowTitle("Erreur")
-                erreur.setText("l'IP ou le port n'est pas correct")
+                erreur.setWindowTitle("Error")
+                erreur.setText("Incorrect IP or port")
                 erreur.resize(250, 500)
                 erreur.setIcon(QMessageBox.Critical)
                 erreur.exec_()
 
             except TypeError:
-                print("le fromat du saisie est faux")
+                print("Type Error")
                 erreur = QMessageBox()
-                erreur.setWindowTitle("Erreur")
-                erreur.setText("le fromat du saisie est faux")
+                erreur.setWindowTitle("Error")
+                erreur.setText("Incorrect type")
                 erreur.resize(250, 500)
                 erreur.setIcon(QMessageBox.Critical)
                 erreur.exec_()
 
             else:
                 print("connecté au serveur")
-                self.etat.setText('connecté')
+                self.etat.setText('connected')
                 self.effacer.setEnabled(True)
                 self.ajout_message.setEnabled(True)
                 self.__thread = threading.Thread(target=self.__msg_du_serv, args=[self.__client_socket])
                 self.__thread.start()
                 print("thread lancé")
-        elif x == "connecté":
+        elif x == "connected":
             pass
 
     def __envoyer(self):
@@ -140,7 +140,7 @@ class Client(QWidget):
                 self.panneau.append(data)
                 time.sleep(0.1)
         self.__client_socket.close()
-        self.etat.setText('déconnecté')
+        self.etat.setText('disconnected')
         self.effacer.setEnabled(False)
         self.ajout_message.setEnabled(False)
         print("task fini")
@@ -164,13 +164,17 @@ class Client(QWidget):
 
             data.sort()'''
 
-        reader = csv.reader(open(path), delimiter=',')
+        with open(path) as file:
+            reader = csv.reader(file)
+            next(reader)
+            data = []
+            for row in reader:
+                row[0] = ipaddress.IPv4Address(row[0])
+                data.append(row)
 
-        data = reader
-
+            data.sort()
 
         print(data)
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
