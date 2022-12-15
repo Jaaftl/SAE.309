@@ -8,7 +8,7 @@ def serveur():
 
     print('démarrage du serveur...')
     host = '127.0.0.1' #socket.gethostname()
-    port = 10000
+    port = 10017
 
     server_socket = socket.socket()
     server_socket.bind((host, port))
@@ -46,10 +46,9 @@ def serveur():
             utilise = f"RAM utilisés : {round(((psutil.virtual_memory()[3]) / 1000000000),2)} Go"
             conn.send(total.encode())
             conn.send(libre.encode())
-            time.sleep(0.1)
+            time.sleep(0.2)
             conn.send(utilise.encode())
         if data == 'disconnect' or data == 'reset':
-
             ok = 'ok, bye !'
             conn.send(ok.encode())
             print("Depuis le client: " + str(data))
@@ -60,7 +59,7 @@ def serveur():
                 time.sleep(0.5)
                 print('démarrage du serveur...')
                 host = '127.0.0.1' #socket.gethostname()
-                port = 10000
+                port = 10017
                 server_socket = socket.socket()
                 server_socket.bind((host, port))
                 time.sleep(0.5)
