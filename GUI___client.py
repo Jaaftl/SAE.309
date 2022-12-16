@@ -3,7 +3,7 @@ import time
 import threading
 from PyQt5.QtWidgets import QApplication, QWidget, QTextEdit, QGridLayout, QPushButton, QLineEdit, QLabel, QMessageBox, QFileDialog
 import sys
-import csv, ipaddress
+import csv
 
 
 class Client(QWidget):
@@ -14,28 +14,28 @@ class Client(QWidget):
         self.setWindowTitle("Tchat")
 
 
-        self.__IP = QLabel("IP : ")
-        self.__ip = QLineEdit("127.0.0.1")
+        self.__IP = QLabel("IP : ")                     #section IP
+        self.__ip = QLineEdit("0")
 
-        self.__PORT = QLabel("PORT : ")
-        self.__port = QLineEdit('10017')
+        self.__PORT = QLabel("PORT : ")                 #section port
+        self.__port = QLineEdit('0')
 
-        self.btnconnect = QPushButton("Connect")
+        self.btnconnect = QPushButton("Connect")        #button pour connecter
 
-        self.lirecsv = QPushButton("open file")
+        self.lirecsv = QPushButton("open file")         #button pour ouvrir le fichier csv
 
-        self.etat = QLabel()
+        self.etat = QLabel()                            #etat de la connexion
         self.etat.setText('disconnected')
-        self.panneau = QTextEdit()
+        self.panneau = QTextEdit()                      #la box pour afficher les commande effectués et les réponses du serveur
         self.panneau.setEnabled(False)
-        self.__text = QLineEdit("")  # Entrée message du client
+        self.__text = QLineEdit("")                     #Entrée message du client
 
-        self.ajout_message = QPushButton("Add message")
-        self.ajout_message.setEnabled(False)
-        self.effacer = QPushButton("Clear")
-        self.effacer.setEnabled(False)
+        self.ajout_message = QPushButton("Add message") #ajouter un message
+        self.ajout_message.setEnabled(False)            #False car le client est déconnecté
+        self.effacer = QPushButton("Clear")             #effacer la box de tchat
+        self.effacer.setEnabled(False)                  #False car le client est déconnecté
 
-        layout = QGridLayout()
+        layout = QGridLayout()                          #emplacement des widgets
         layout.addWidget(self.__IP, 0, 0)
         layout.addWidget(self.__ip, 0, 1)
         layout.addWidget(self.lirecsv, 0, 3)
@@ -50,14 +50,14 @@ class Client(QWidget):
         layout.addWidget(self.effacer, 6, 1)
         self.setLayout(layout)
 
-        self.btnconnect.clicked.connect(self.connexion)
+        self.btnconnect.clicked.connect(self.connexion)     #actions effectués sur les buttons appuyés
         self.effacer.clicked.connect(self.__effacer)
 
         self.ajout_message.clicked.connect(self.__envoyer)
         self.lirecsv.clicked.connect(self.__lirecsv)
 
 
-    def connexion(self):
+    def connexion(self):                                #pour se connecter
         x = str(self.etat.text())
         if x == "disconnected":
             try:
@@ -65,11 +65,11 @@ class Client(QWidget):
                 IP = str(self.__ip.text())
                 PORT = int(self.__port.text())
                 self.__client_socket.connect((IP, PORT))
-            except ConnectionRefusedError:
+            except ConnectionRefusedError:              #Les erreurs si la connexion n'est pas réussi
                 print("Server not launched or incorrect information")
                 erreur = QMessageBox()
                 erreur.setWindowTitle("Error")
-                erreur.setText("Server not launched or incorrect information")
+                erreur.setText("Server is not launched or incorrect information")
                 erreur.resize(250, 500)
                 erreur.setIcon(QMessageBox.Critical)
 
@@ -92,7 +92,7 @@ class Client(QWidget):
                 erreur.setIcon(QMessageBox.Critical)
                 erreur.exec_()
 
-            except TypeError:
+            except ValueError:
                 print("Type Error")
                 erreur = QMessageBox()
                 erreur.setWindowTitle("Error")
@@ -101,7 +101,7 @@ class Client(QWidget):
                 erreur.setIcon(QMessageBox.Critical)
                 erreur.exec_()
 
-            else:
+            else:                                           #initioation de la connexion et lancer le thread de récéption message
                 print("connecté au serveur")
                 self.etat.setText('connected')
                 self.effacer.setEnabled(True)
@@ -112,22 +112,40 @@ class Client(QWidget):
         elif x == "connected":
             pass
 
-    def __envoyer(self):
+    def __envoyer(self):                                    #fonction pour envoyer
         x = self.__text.text()
         x = str(x)
-        self.__client_socket.send(x.encode())
-        self.panneau.append(x)
-        self.__text.clear()
-        #if x == 'disconnect' or x == 'reset' or x == 'kill':
-            #pass
+        try:
+            self.__client_socket.send(x.encode())
+        except :
+            erreur = QMessageBox()
+            erreur.setWindowTitle("Error")
+            erreur.setText("Server is unavailable")
+            erreur.resize(250, 500)
+            erreur.setIcon(QMessageBox.Critical)
+            erreur.exec_()
+            self.__text.clear()
+            erreur = QMessageBox()
+            erreur.setWindowTitle("Help")
+            erreur.setText("you will be disconnected from the server")
+            erreur.resize(250, 500)
+            erreur.setIcon(QMessageBox.Information)
+            erreur.exec_()
 
-    def __effacer(self):
+            self.etat.setText('disconnected')
+            self.effacer.setEnabled(False)
+            self.ajout_message.setEnabled(False)
+        else :
+            self.panneau.append(x)
+            self.__text.clear()
+
+    def __effacer(self):                                    #fonction pour effacer les message envoyés et reçus
         self.panneau.setPlainText("")
 
 
 
 
-    def __msg_du_serv(self, conn):
+    def __msg_du_serv(self, conn):                          #fonction pour recevoir les message
         print('task start')
         data = ""
         while data != 'stop':
@@ -146,35 +164,37 @@ class Client(QWidget):
         print("task fini")
 
 
-    def __lirecsv(self):
+    def __lirecsv(self):                                    #fonction pour ouvrir une dialogue pour choisir le fichier csv
         print("open dialog")
         self.open_dialog_box()
 
-    def open_dialog_box(self):
+    def open_dialog_box(self):                              #fonction pour lire le fichier csv
         filename = QFileDialog.getOpenFileName()
         path = str(filename[0])
 
-        '''with open(path) as file:
-            reader = csv.reader(file)
-            next(reader)
-            data = []
-            for row in reader:
-                row[0] = IP.IPv4Address(row[0])
-                data.append(row)
+        try :
+            f = open(path, 'r')   #open csv file
+        except :
+            print ("the choosen file is incorrect, chose again")
+            print("file error")
+            erreur = QMessageBox()
+            erreur.setWindowTitle("Error")
+            erreur.setText("the choosen file is incorrect, chose again")
+            erreur.resize(250, 500)
+            erreur.setIcon(QMessageBox.Critical)
+            erreur.exec_()
+            self.__lirecsv()
+        else :
+            add = csv.reader(f)  # readcthe csv
+            x = 1
+            for ind in add:  # trasnform it into a list
+                self.__ip.setText(
+                    str(ind[0]))  # the element from the list ind index 0, is placed into self.__ip wich is a server's ip input
+                self.__port.setText(str(ind[1]))  # same thing for server's port
+                print(x)
+                x = x + 1
 
-            data.sort()'''
 
-        with open(path) as file:
-            reader = csv.reader(file)
-            next(reader)
-            data = []
-            for row in reader:
-                row[0] = ipaddress.IPv4Address(row[0])
-                data.append(row)
-
-            data.sort()
-
-        print(data)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
